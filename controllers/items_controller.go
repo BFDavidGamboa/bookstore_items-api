@@ -1,1 +1,55 @@
 package controllers
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/BFDavidGamboa/bookstore_items-api/domain/items"
+	"github.com/BFDavidGamboa/bookstore_items-api/services"
+	"github.com/BFDavidGamboa/bookstore_items-api/utils/http_utils"
+	"github.com/BFDavidGamboa/bookstore_oauth-go/oauth"
+)
+
+var (
+	ItemsController itemsControllerIntercafe = &itemsController{}
+)
+
+type itemsControllerIntercafe interface {
+	Create(w http.ResponseWriter, r *http.Request)
+	Get(w http.ResponseWriter, r *http.Request)
+}
+
+type itemsController struct{}
+
+func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
+
+	if err := oauth.AuthenticateRequest(r); err != nil {
+		http_utils.RespondError(w, err)
+		return
+	}
+
+	item := items.Item{
+		Seller: oauth.GetCallerID(r),
+	}
+
+	result, err := services.ItemsService.Create(item)
+	if err != nil {
+		http_utils.RespondError(w, err)
+		return
+	}
+	http_utils.RespondJson(w, http.StatusCreated, result)
+}
+
+func (c *itemsController) Get(w http.ResponseWriter, r *http.Request) {
+	item := items.Item{
+		Seller: oauth.GetCallerID(r),
+	}
+
+	result, err := services.ItemsService.Create(item)
+	if err != nil {
+		// TODO :return error json to the caller
+		return
+	}
+	fmt.Println(result)
+	// TODO :return created item with http status 201 = created json.status
+}
