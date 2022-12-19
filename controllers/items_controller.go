@@ -27,7 +27,14 @@ type itemsController struct{}
 func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := oauth.AuthenticateRequest(r); err != nil {
-		http_utils.RespondError(w, err)
+
+		return
+	}
+
+	sellerId := oauth.GetCallerID(r)
+	if sellerId == 0 {
+		respErr := rest_errors.NewUnauthorizedError("unable to retrieve user information from given access_token")
+		http_utils.RespondError(w, respErr)
 		return
 	}
 
@@ -46,7 +53,7 @@ func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	itemRequest.Seller = oauth.GetClientId(r)
+	itemRequest.Seller = sellerId
 
 	result, createErr := services.ItemsService.Create(itemRequest)
 	if createErr != nil {
