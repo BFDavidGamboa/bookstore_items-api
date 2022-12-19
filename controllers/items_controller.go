@@ -2,15 +2,16 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/BFDavidGamboa/bookstore_items-api/domain/items"
 	"github.com/BFDavidGamboa/bookstore_items-api/services"
 	"github.com/BFDavidGamboa/bookstore_items-api/utils/http_utils"
 	"github.com/BFDavidGamboa/bookstore_oauth-go/oauth"
 	"github.com/BFDavidGamboa/bookstore_utils-go/rest_errors"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -64,15 +65,13 @@ func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *itemsController) Get(w http.ResponseWriter, r *http.Request) {
-	item := items.Item{
-		Seller: oauth.GetCallerID(r),
-	}
+	vars := mux.Vars(r)
+	itemId := strings.TrimSpace(vars["id"])
 
-	result, err := services.ItemsService.Create(item)
+	item, err := services.ItemsService.Get(itemId)
 	if err != nil {
-		// TODO :return error json to the caller
+		http_utils.RespondError(w, err)
 		return
 	}
-	fmt.Println(result)
-	// TODO :return created item with http status 201 = created json.status
+	http_utils.RespondJson(w, http.StatusOK, item)
 }

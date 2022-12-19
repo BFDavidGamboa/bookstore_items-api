@@ -18,10 +18,10 @@ func StartApplication() {
 
 	srv := &http.Server{
 		Handler: router,
-		Addr:    "127.0.0.1:8080",
+		Addr:    "127.0.0.1:8081",
 	}
 
-	fmt.Println("Starting server on port 8080")
+	fmt.Printf("Starting server on ip:port = %s", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
 		panic(err)
 	}
