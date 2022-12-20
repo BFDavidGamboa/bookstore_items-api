@@ -3,11 +3,13 @@ package items
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
 
-	"fmt"
-
 	"github.com/BFDavidGamboa/bookstore_items-api/client/elasticsearch"
+	"github.com/BFDavidGamboa/bookstore_items-api/domain/queries"
 	"github.com/BFDavidGamboa/bookstore_utils-go/rest_errors"
 )
 
@@ -33,7 +35,7 @@ func (i *Item) Get() rest_errors.RestErr {
 	itemId := i.Id
 	result, err := elasticsearch.Client.Get(indexItems, typeItems, i.Id)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if strings.Contains(err.Error(), strconv.Itoa(http.StatusNotFound)) {
 			return rest_errors.NewNotFoundError(fmt.Sprintf("no item found with id %s", i.Id))
 		}
 		return rest_errors.NewInternalServerError(fmt.Sprintf("error when trying to get items by id %s", i.Id), errors.New("data error "))
@@ -49,4 +51,30 @@ func (i *Item) Get() rest_errors.RestErr {
 	}
 	i.Id = itemId
 	return nil
+}
+
+func (i *Item) Search(query queries.EsQuery) ([]Item, rest_errors.RestErr) {
+	result, err := elasticsearch.Client.Search(indexItems, query.Build())
+	if err != nil {
+		return nil, rest_errors.NewInternalServerError("error when trying to search documents", errors.New("database error"))
+	}
+
+	fmt.Println(result)
+	items := make([]Item, result.TotalHits())
+
+	for index, hit := range result.Hits.Hits {
+		bytes, _ := hit.Source.MarshalJSON()
+		var item Item
+		// TODO; Should unmarshal without errors here
+		fmt.Println(json.Unmarshal(bytes, &items[0]))
+		if err := json.Unmarshal(bytes, &items); err != nil {
+			return nil, rest_errors.NewInternalServerError("error when trying to parse response", errors.New("database error"))
+		}
+		items[index] = item
+	}
+
+	if len(items) == 0 {
+		return nil, rest_errors.NewNotFoundError("no items found matching given criterias")
+	}
+	return nil, nil
 }
