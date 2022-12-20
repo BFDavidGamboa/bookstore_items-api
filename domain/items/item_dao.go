@@ -65,16 +65,16 @@ func (i *Item) Search(query queries.EsQuery) ([]Item, rest_errors.RestErr) {
 	for index, hit := range result.Hits.Hits {
 		bytes, _ := hit.Source.MarshalJSON()
 		var item Item
-		// TODO; Should unmarshal without errors here
-		fmt.Println(json.Unmarshal(bytes, &items[0]))
-		if err := json.Unmarshal(bytes, &items); err != nil {
+
+		if err := json.Unmarshal(bytes, &item); err != nil {
 			return nil, rest_errors.NewInternalServerError("error when trying to parse response", errors.New("database error"))
 		}
+		item.Id = hit.Id
 		items[index] = item
 	}
 
 	if len(items) == 0 {
 		return nil, rest_errors.NewNotFoundError("no items found matching given criterias")
 	}
-	return nil, nil
+	return items, nil
 }
