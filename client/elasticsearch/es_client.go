@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,6 +19,7 @@ type esClientInterface interface {
 	Index(index string, docType string, doc interface{}) (*elastic.IndexResponse, error)
 	Get(index string, docType string, id string) (*elastic.GetResult, error)
 	Search(string, elastic.Query) (*elastic.SearchResult, error)
+	Delete(index string, docType string, doc interface{}) (*elastic.DeleteResponse, error)
 }
 type esClient struct {
 	client *elastic.Client
@@ -58,6 +60,18 @@ func (c *esClient) Index(index string, docType string, doc interface{}) (*elasti
 		return nil, err
 	}
 	return result, nil
+}
+
+func (c *esClient) Delete(index string, docType string, doc interface{}) (*elastic.DeleteResponse, error) {
+	ctx := context.Background()
+	result, err := c.client.Delete().Index(index).Type(docType).Do(ctx)
+	if err != nil {
+		logger.Error(
+			fmt.Sprintf("error when trying to delete document in es %s", index), err)
+		return nil, err
+	}
+
+	return result, errors.New("error")
 }
 
 func (c *esClient) Get(index string, docType string, id string) (*elastic.GetResult, error) {

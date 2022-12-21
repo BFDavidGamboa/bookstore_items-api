@@ -21,6 +21,16 @@ const (
 	typeItems = "_doc"
 )
 
+func (i *Item) Delete() rest_errors.RestErr {
+	result, err := elasticsearch.Client.Delete(indexItems, typeItems, i)
+	if err != nil {
+		return rest_errors.NewConflictError("error when deleting an item", errors.New("database error"))
+	}
+	i.Id = result.Id
+
+	return nil
+}
+
 func (i *Item) Save() rest_errors.RestErr {
 
 	result, err := elasticsearch.Client.Index(indexItems, typeItems, i)

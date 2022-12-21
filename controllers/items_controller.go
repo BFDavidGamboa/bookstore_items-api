@@ -23,14 +23,13 @@ type itemsControllerIntercafe interface {
 	Create(w http.ResponseWriter, r *http.Request)
 	Get(w http.ResponseWriter, r *http.Request)
 	Search(w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
 }
 
 type itemsController struct{}
 
-func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
-
+func (c *itemsController) Delete(w http.ResponseWriter, r *http.Request) {
 	if err := oauth.AuthenticateRequest(r); err != nil {
-
 		return
 	}
 
@@ -41,7 +40,7 @@ func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestBoody, err := io.ReadAll(r.Body)
+	requestBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		respErr := rest_errors.NewBadRequestError("invalid request body")
 		http_utils.RespondError(w, respErr)
@@ -50,7 +49,46 @@ func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var itemRequest items.Item
-	if err := json.Unmarshal(requestBoody, &itemRequest); err != nil {
+	if err := json.Unmarshal(requestBody, &itemRequest); err != nil {
+		respErr := rest_errors.NewBadRequestError("invalid item json  body")
+		http_utils.RespondError(w, respErr)
+		return
+	}
+
+	itemRequest.Seller = sellerId
+
+	result, deleteErr := services.ItemsService.Delete(itemRequest)
+	if deleteErr != nil {
+		http_utils.RespondError(w, deleteErr)
+		return
+	}
+	http_utils.RespondJson(w, http.StatusCreated, result)
+
+}
+
+func (c *itemsController) Create(w http.ResponseWriter, r *http.Request) {
+
+	if err := oauth.AuthenticateRequest(r); err != nil {
+		return
+	}
+
+	sellerId := oauth.GetCallerID(r)
+	if sellerId == 0 {
+		respErr := rest_errors.NewUnauthorizedError("unable to retrieve user information from given access_token")
+		http_utils.RespondError(w, respErr)
+		return
+	}
+
+	requestBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		respErr := rest_errors.NewBadRequestError("invalid request body")
+		http_utils.RespondError(w, respErr)
+		return
+	}
+	defer r.Body.Close()
+
+	var itemRequest items.Item
+	if err := json.Unmarshal(requestBody, &itemRequest); err != nil {
 		respErr := rest_errors.NewBadRequestError("invalid item json  body")
 		http_utils.RespondError(w, respErr)
 		return
